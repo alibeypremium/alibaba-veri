@@ -1,4 +1,4 @@
-name: tg
+name: tg # zamanlayıcıyı yeniden kaydet
 on:
   schedule:
     - cron: '*/5 * * * *'

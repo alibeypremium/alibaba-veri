@@ -1,4 +1,4 @@
-name: art
+name: art # zamanlayıcıyı yeniden kaydet
 on:
   schedule:
     - cron: '*/10 * * * *'

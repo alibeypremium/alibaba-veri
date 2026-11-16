@@ -1,4 +1,4 @@
-name: ps
+name: ps # zamanlayıcıyı yeniden kaydet
 on:
   schedule:
     - cron: '17 */6 * * *'

@@ -1,4 +1,4 @@
-name: kurul
+name: kurul # zamanlayıcıyı yeniden kaydet
 on:
   schedule:
     - cron: '41 3 * * *'      # günde bir kez (UTC 03:41)
