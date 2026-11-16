@@ -26,3 +26,14 @@ jobs:
           git add yt.json
           git commit -q -m "yt $(date -u +%FT%TZ)"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" veri-yt
+      - name: X listesi (Nitter RSS) → veri-tw dalı
+        continue-on-error: true   # Nitter çalışmazsa yt etkilenmez; veri-tw dalındaki eski tw.json kalır
+        run: |
+          node .github/scripts/tw.mjs out-tw/tw.json
+          cd out-tw
+          git init -q -b veri-tw
+          git config user.name "tw-bot"
+          git config user.email "tw-bot@users.noreply.github.com"
+          git add tw.json
+          git commit -q -m "tw $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" veri-tw

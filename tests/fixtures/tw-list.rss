@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+  <channel>
+    <atom:link href="https://nitter.example/i/lists/1" rel="self" type="application/rss+xml" />
+    <title>Karma / @sahip</title>
+    <item>
+      <title>SON DAKİKA: Gemi battı &amp; 12 mürettebat kayıp (İHA)</title>
+      <dc:creator>@pusholder</dc:creator>
+      <description>&lt;p&gt;SON DAKİKA: Gemi battı &amp;amp; 12 mürettebat kayıp&lt;br&gt;&lt;img src=&quot;https://nitter.example/pic/orig/media%2FGabc123.jpg&quot; style=&quot;max-width:250px;&quot; /&gt;&lt;/p&gt;</description>
+      <pubDate>Mon, 16 Nov 2026 11:29:23 GMT</pubDate>
+      <guid>2122290933093851163</guid>
+      <link>https://nitter.example/pusholder/status/2122290933093851163#m</link>
+    </item>
+    <item>
+      <title>RT by @eozpeynirci: Türkiye neden daha az otomobil üretiyor?</title>
+      <dc:creator>@gazetepencere</dc:creator>
+      <description><![CDATA[<p>Türkiye neden daha az otomobil üretiyor?</p>]]></description>
+      <pubDate>Mon, 16 Nov 2026 10:00:00 GMT</pubDate>
+      <guid>2122228173530083786</guid>
+      <link>https://nitter.example/gazetepencere/status/2122228173530083786#m</link>
+    </item>
+    <item>
+      <title>R to @MstafaKadir: Yazılımı buradan indirebilirsiniz https://gitlab.com/x/y</title>
+      <dc:creator>@baska</dc:creator>
+      <description>&lt;p&gt;x&lt;/p&gt;</description>
+      <pubDate>Mon, 16 Nov 2026 12:00:00 GMT</pubDate>
+      <guid>2122269243089793343</guid>
+      <link>https://nitter.example/baska/status/2122269243089793343#m</link>
+    </item>
+    <item>
+      <title>Bozuk kayıt: tarih yok</title>
+      <dc:creator>@x</dc:creator>
+      <guid>5</guid>
+      <link>https://nitter.example/x/status/5#m</link>
+    </item>
+  </channel>
+</rss>
