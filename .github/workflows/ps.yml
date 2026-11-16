@@ -1,0 +1,33 @@
+name: ps
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ps
+  cancel-in-progress: false
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: önceki veriyi al (başarısız olan dosya eskisiyle kalsın)
+        run: |
+          git clone -q --depth 1 -b veri-ps "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" out 2>/dev/null && rm -rf out/.git || mkdir -p out
+      - run: node .github/scripts/ps.mjs out
+      - name: veri-ps dalına yaz (site yeniden build olmaz)
+        run: |
+          [ -n "$(ls -A out 2>/dev/null)" ] || { echo "veri yok, dal güncellenmedi"; exit 0; }
+          cd out
+          git init -q -b veri-ps
+          git config user.name "ps-bot"
+          git config user.email "ps-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "ps $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" veri-ps

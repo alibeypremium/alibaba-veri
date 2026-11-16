@@ -1,0 +1,28 @@
+name: yt
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: yt
+  cancel-in-progress: true
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node .github/scripts/yt.mjs out/yt.json
+      - name: veri-yt dalına yaz (site yeniden build olmaz)
+        run: |
+          cd out
+          git init -q -b veri-yt
+          git config user.name "yt-bot"
+          git config user.email "yt-bot@users.noreply.github.com"
+          git add yt.json
+          git commit -q -m "yt $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" veri-yt
