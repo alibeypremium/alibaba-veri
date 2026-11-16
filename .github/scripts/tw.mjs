@@ -73,14 +73,26 @@ async function get(host) {
 
 if (process.argv[1] && process.argv[1].endsWith('tw.mjs')) {
   const outFile = process.argv[2] || 'out/tw.json', errs = [];
+  // Bazı Nitter örnekleri bayat akış verir (X oturumları kısıtlanınca). İlk çalışan değil, en taze akış seçilir:
+  // örnekler sırayla denenir, en yeni tweet FRESH süreden yeniyse durulur; değilse hepsi denenip tweet'ler birleştirilir.
+  const FRESH = 15 * 60e3, got = new Map(), used = [];
+  let title = '';
   for (const h of INSTANCES) {
     try {
-      const { items, title } = await get(h);
-      fs.mkdirSync(path.dirname(outFile), { recursive: true });
-      fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), url: 'https://x.com/i/lists/' + LIST, name: title, src: h, items }));
-      console.log('tw ok', h, items.length, 'tweet');
-      process.exit(0);
+      const r = await get(h);
+      title = title || r.title; used.push(h);
+      for (const it of r.items) if (!got.has(it.id)) got.set(it.id, it);
+      const newest = Date.parse(r.items[0].d);
+      console.log('tw ok', h, r.items.length, 'tweet, en yeni', r.items[0].d);
+      if (Date.now() - newest < FRESH) break;
     } catch (e) { errs.push(h + ': ' + e.message); console.log('tw hata', h, e.message); }
+  }
+  if (got.size) {
+    const items = [...got.values()].sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, MAX);
+    fs.mkdirSync(path.dirname(outFile), { recursive: true });
+    fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), url: 'https://x.com/i/lists/' + LIST, name: title, src: used.join(','), items }));
+    console.log('tw yazıldı', items.length, 'tweet, en yeni', items[0].d);
+    process.exit(0);
   }
   console.error('Hiçbir Nitter örneği çalışmadı: ' + errs.join(' | '));
   process.exit(1);   // eski tw.json dalda kalır (üzerine yazılmaz)
