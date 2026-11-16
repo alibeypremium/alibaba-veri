@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parse, picOf, unent, noTco, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
+import { parse, picOf, unent, noTco, norm, fullText, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
 
 const xml = fs.readFileSync(new URL('./fixtures/tw-list.rss', import.meta.url), 'utf8');
 
@@ -58,4 +58,17 @@ test('tw: kullanıcı RSS\'inden görünen ad ve profil resmi alınır; yalnızc
   assert.deepEqual(profileOf(rss('Boşuna Tıklama / @bosunatiklama', 'https://pbs.twimg.com/profile_images/1882143207280029696/vEb6yfNF_400x400.jpg')), { n: 'Boşuna Tıklama', a: 'https://pbs.twimg.com/profile_images/1882143207280029696/vEb6yfNF_bigger.jpg' });
   assert.deepEqual(profileOf(rss('Ad &amp; Soyad / @x', 'https://evil.example/a.jpg')), { n: 'Ad & Soyad', a: '' });
   assert.equal(profileOf('<rss><channel></channel></rss>'), null);
+});
+
+test('tw: satır sonları korunur; kesilmiş (…) başlık yerine açıklamadaki tam metin alınır; "RT @x (by @y):" biçimi RT sayılır', () => {
+  assert.equal(norm('a  b \n\n\n\n c\t d'), 'a b\n\nc d');
+  assert.equal(fullText('<p>Satır bir<br>\n<br>\nSatır iki &amp; üç <a href="x">bağ</a></p><hr/>'), 'Satır bir\n\nSatır iki & üç bağ');
+  const item = (title, desc, id) => '<item><title>' + title + '</title><dc:creator>@a</dc:creator><description><![CDATA[' + desc + ']]></description><pubDate>Mon, 16 Nov 2026 12:00:00 GMT</pubDate><guid>' + id + '</guid><link>https://x.test/a/status/' + id + '</link></item>';
+  const out = parse('<rss><channel>' + item('Uzun bir tweet başlangıcı burada devam ediyor ve sonra…', '<p>Uzun bir tweet başlangıcı burada devam ediyor ve sonra<br>devamı tam metinde yer alıyor.</p>', '2122000000000000001')
+    + item('RT @kaynak (by @a): Paylaşılan haber', '<p>Paylaşılan haber</p>', '2122000000000000002')
+    + item('Kısa tweet…', '<p>Tamamen başka bir metin</p>', '2122000000000000003') + '</channel></rss>');
+  const by = Object.fromEntries(out.map((x) => [x.id.slice(-1), x]));
+  assert.equal(by['1'].t, 'Uzun bir tweet başlangıcı burada devam ediyor ve sonra\ndevamı tam metinde yer alıyor.');
+  assert.deepEqual([by['2'].k, by['2'].t], ['rt', 'Paylaşılan haber']);
+  assert.equal(by['3'].t, 'Kısa tweet…', 'açıklama başlıkla örtüşmüyorsa başlık kalır');
 });

@@ -44,7 +44,14 @@ export function picOf(html) {
 }
 
 // Tweet metnindeki kısaltılmış bağlantılar (t.co, bazı Nitter örneklerinde "örnek/t.co/…") okunmayı bozar: silinir.
-export const noTco = (t) => String(t).replace(/\s*https?:\/\/(?:[\w.-]+\/)?t\.co\/\w+/g, '').replace(/\s+/g, ' ').trim();
+// Satır sonları korunur (okuma penceresinde paragraflar görünsün); boşluklar tek boşluğa iner, en çok bir boş satır kalır.
+export const norm = (t) => String(t).replace(/[ \t\u00a0]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+export const noTco = (t) => norm(String(t).replace(/[ \t]*https?:\/\/(?:[\w.-]+\/)?t\.co\/\w+/g, ''));
+// Nitter RSS başlığı uzun tweet'leri "…" ile keser; tam metin açıklamadaki ilk <p> bloğundadır.
+export function fullText(descHtml) {
+  const m = String(descHtml).match(/^\s*<p>([\s\S]*?)<\/p>/);
+  return m ? noTco(unent(m[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''))) : '';
+}
 
 // Profil: kullanıcının RSS'inden görünen ad ("Ad / @kullanıcı") ve profil resmi; yalnızca X'in profil resmi adresi kabul edilir.
 export function profileOf(xml) {
@@ -63,13 +70,19 @@ export function parse(xml) {
     const link = tag(block, 'link'), id = tag(block, 'guid').match(/\d{6,}/)?.[0] || link.match(/status\/(\d+)/)?.[1];
     const user = (tag(block, 'dc:creator') || link.match(/\/([^/]+)\/status\//)?.[1] || '').replace(/^@/, '');
     const when = Date.parse(tag(block, 'pubDate'));
-    let text = tag(block, 'title').replace(/\s+/g, ' ').trim(), kind = 'tweet';
+    let text = norm(tag(block, 'title')), kind = 'tweet';
     if (/^RT by @\w+:\s*/.test(text)) { kind = 'rt'; text = text.replace(/^RT by @\w+:\s*/, ''); }
+    else if (/^RT @\w+ \(by @\w+\):\s*/.test(text)) { kind = 'rt'; text = text.replace(/^RT @\w+ \(by @\w+\):\s*/, ''); }
     else if (/^R to @\w+:\s*/.test(text)) { kind = 'reply'; text = text.replace(/^R to @\w+:\s*/, ''); }
     text = noTco(text);
-    const img = picOf(tag(block, 'description'));
+    const desc = tag(block, 'description');
+    if (/(…|\.\.\.)$/.test(text)) {   // kesilmiş başlık: açıklamadaki tam metin başlığın başlangıcıyla örtüşüyorsa o kullanılır
+      const full = fullText(desc), sq = (x) => x.replace(/\s+/g, ' ');
+      if (full && sq(full).startsWith(sq(text.replace(/(…|\.\.\.)$/, '')).slice(0, 30))) text = full;
+    }
+    const img = picOf(desc);
     if (!id || !/^\w{1,15}$/.test(user) || !(when > 0) || (!text && !img)) continue;   // yalnızca bağlantıdan oluşan ve görseli olmayan tweet atlanır
-    const it = { id, u: '@' + user, k: kind, t: text.slice(0, 700), d: new Date(when).toISOString(), l: 'https://x.com/' + user + '/status/' + id };
+    const it = { id, u: '@' + user, k: kind, t: text.slice(0, 1500), d: new Date(when).toISOString(), l: 'https://x.com/' + user + '/status/' + id };
     if (img) it.img = img;
     out.push(it);
   }
