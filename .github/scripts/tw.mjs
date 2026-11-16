@@ -22,17 +22,24 @@ const tag = (block, name) => {
 };
 const strip = (h) => unent(String(h).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 
-// Nitter'ın /pic/ vekil adresini X'in kendi görsel adresine çevirir (örnek kapanırsa görsel kırılmasın).
+// Görsel: Nitter bazı örneklerde doğrudan pbs.twimg.com adresi verir, bazılarında kendi /pic/ vekil adresini. İkisi de X'in görsel adresine çevrilir;
+// yalnızca bilinen medya yolları kabul edilir (avatar, rastgele site yok).
+const MEDIA = /^(media|ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb|card_img)\/[\w./-]+$/;
 export function picOf(html) {
   const m = String(html).match(/<img[^>]+src="([^"]+)"/i);
   if (!m) return '';
-  let p = m[1].replace(/^https?:\/\/[^/]+/, '');
-  const i = p.indexOf('/pic/');
-  if (i < 0) return '';
-  p = p.slice(i + 5).replace(/^orig\//, '');
-  try { p = decodeURIComponent(p); } catch { return ''; }
-  p = p.split('?')[0];
-  return /^(media|ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb|card_img)\/[\w./-]+$/.test(p) ? 'https://pbs.twimg.com/' + p : '';
+  const src = unent(m[1]);
+  let p;
+  const d = src.match(/^https:\/\/pbs\.twimg\.com\/([^?#]+)/);
+  if (d) p = d[1];
+  else {
+    const i = src.indexOf('/pic/');
+    if (i < 0) return '';
+    p = src.slice(i + 5).split('?')[0].replace(/^orig\//, '');
+    try { p = decodeURIComponent(p); } catch { return ''; }
+    p = p.split('?')[0];
+  }
+  return MEDIA.test(p) ? 'https://pbs.twimg.com/' + p : '';
 }
 
 export function parse(xml) {

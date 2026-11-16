@@ -31,6 +31,8 @@ test('tw: varlıklar çözülür; RT/yanıt ön ekleri türe çevrilir; bağlant
 test('tw: picOf yalnızca bilinen X görsel yollarını kabul eder', () => {
   assert.equal(picOf('<img src="https://n.example/pic/media%2FAB_c-1.png%3Fname%3Dsmall">'), 'https://pbs.twimg.com/media/AB_c-1.png');
   assert.equal(picOf('<img src="https://n.example/pic/ext_tw_video_thumb%2F1%2Fpu%2Fimg%2Fx.jpg">'), 'https://pbs.twimg.com/ext_tw_video_thumb/1/pu/img/x.jpg');
+  assert.equal(picOf('<img src="https://pbs.twimg.com/media/AbC_1-x.jpg?format=jpg&amp;name=small">'), 'https://pbs.twimg.com/media/AbC_1-x.jpg');
+  assert.equal(picOf('<img src="https://pbs.twimg.com/profile_images/1/a.jpg">'), '', 'avatar kabul edilmez');
   assert.equal(picOf('<img src="https://n.example/pic/evil%2F..%2Fx.jpg">'), '');
   assert.equal(picOf('<img src="https://baska.example/x.jpg">'), '');
   assert.equal(picOf('metin'), '');
