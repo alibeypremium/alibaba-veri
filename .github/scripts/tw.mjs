@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const LIST = '2122284620062294403';
-export const INSTANCES = ['nitter.cf', 'nitter.netbub.com', 'nitter.mie.foundation', 'nitter.kareem.one', 'nitter.jaydenha.uk', 'nitter.mizuki.st', 'nitter.pp.ua'];
+export const INSTANCES = ['nitter.cf', 'xitter.gq', 'teapawt.net', 'teapawt.org', 'nitter.netbub.com', 'nitter.mie.foundation', 'nitter.kareem.one', 'nitter.jaydenha.uk', 'nitter.mizuki.st', 'nitter.pp.ua'];
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const MAX = 40;
 
