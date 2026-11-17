@@ -6,7 +6,7 @@ const REPO = 'alibeypremium/alibaba-veri';
 export function due(d) {
   const m = d.getUTCMinutes(), h = d.getUTCHours(), out = ['tg.yml'];
   if (m % 10 < 5) out.push('art.yml');             // ~10 dk
-  if (m % 15 < 5) out.push('yt.yml');              // ~15 dk
+  if (m % 10 < 5) out.push('yt.yml');              // ~15 dk
   if (h % 6 === 0 && m < 5) out.push('ps.yml');    // 6 saatte bir
   if (h === 3 && m >= 40 && m < 45) out.push('kurul.yml');   // günde bir (03:40 UTC)
   return out;
