@@ -129,11 +129,22 @@ export function pickMp4(j) {
   const ok = vs.filter((v) => (v.bitrate || 0) <= 1.5e6).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
   return (ok[0] || vs.sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0))[0]).url;
 }
-async function videoOf(id) {
+// Profil (ad + profil resmi) yedeği: aynı tweet-result yanıtındaki "user" alanı. Nitter'ın kullanıcı sayfaları sık 403/429 verdiğinden asıl yol budur.
+export function profileFromSyn(j) {
+  const u = j && j.user;
+  if (!u) return null;
+  const n = String(u.name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const m = String(u.profile_image_url_https || '').match(/^https:\/\/pbs\.twimg\.com\/(profile_images\/[\w./-]+?)(?:_400x400|_bigger|_normal)?(\.\w+)$/);
+  return n || m ? { n, a: m ? 'https://pbs.twimg.com/' + m[1] + '_bigger' + m[2] : '' } : null;
+}
+async function synJson(id) {
   const token = ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '');
   const r = await fetch('https://cdn.syndication.twimg.com/tweet-result?id=' + id + '&lang=tr&token=' + token, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
-  return pickMp4(await r.json());
+  return r.json();
+}
+async function videoOf(id) {
+  return pickMp4(await synJson(id));
 }
 
 async function get(host) {
@@ -171,11 +182,18 @@ if (process.argv[1] && process.argv[1].endsWith('tw.mjs')) {
     for (const h of handles) if (prev[h]) p[h] = prev[h];
     const need = handles.filter((h) => !p[h] || Date.now() - (p[h].t || 0) > PROF_TTL).slice(0, 8);
     for (const h of need) {
-      try {
-        const r = await fetch('https://' + used[0] + '/' + h + '/rss', { headers: { 'user-agent': UA, accept: 'application/rss+xml,text/xml;q=0.9,*/*;q=0.8' }, signal: AbortSignal.timeout(15000) });
-        const pr = r.ok ? profileOf(await r.text()) : null;
-        if (pr) { p[h] = { ...pr, t: Date.now() }; console.log('tw profil', h, pr.n); }
-      } catch (e) { console.log('tw profil hata', h, e.message); }
+      let pr = null;
+      // 1) X'in tweet-result yanıtı (kullanıcının en yeni tweet'i üzerinden); 2) Nitter kullanıcı RSS'i (çalışan örneklerden sırayla)
+      const tid = (items.find((i) => i.u.slice(1) === h) || {}).id;
+      if (tid) { try { pr = profileFromSyn(await synJson(tid)); } catch (e) { console.log('tw profil (syn) hata', h, e.message); } }
+      for (const host of pr ? [] : used) {
+        try {
+          const r = await fetch('https://' + host + '/' + h + '/rss', { headers: { 'user-agent': UA, accept: 'application/rss+xml,text/xml;q=0.9,*/*;q=0.8' }, signal: AbortSignal.timeout(15000) });
+          pr = r.ok ? profileOf(await r.text()) : null;
+          if (pr) break;
+        } catch (e) { console.log('tw profil hata', h, host, e.message); }
+      }
+      if (pr) { p[h] = { ...pr, t: Date.now() }; console.log('tw profil', h, pr.n); } else console.log('tw profil alınamadı', h);
       await new Promise((ok) => setTimeout(ok, 500));
     }
     // Video adresleri: önceki çalışmadan taşınır, yeni video tweet'leri için bir seferde en çok 12 arama.

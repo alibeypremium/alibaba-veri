@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isVideoThumb, pickMp4, parse, picOf, unent, noTco, norm, fullText, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
+import { profileFromSyn, isVideoThumb, pickMp4, parse, picOf, unent, noTco, norm, fullText, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
 
 const xml = fs.readFileSync(new URL('./fixtures/tw-list.rss', import.meta.url), 'utf8');
 
@@ -105,4 +105,12 @@ test('video: küçük resim tanınır, mp4 seçimi (≤1,5 Mbps en yükseği; HL
   assert.equal(pickMp4({ mediaDetails: [{ video_info: { variants: [v(8768000, 'https://video.twimg.com/a/1080.mp4'), v(5e6, 'https://video.twimg.com/a/540.mp4')] } }] }), 'https://video.twimg.com/a/540.mp4', 'hepsi büyükse en düşük');
   assert.equal(pickMp4({ mediaDetails: [{ type: 'photo' }] }), '');
   assert.equal(pickMp4(null), '');
+});
+
+test('profil yedeği: tweet-result "user" alanından ad ve büyük profil resmi', () => {
+  const j = { user: { name: '  Multiplayer  TV ', screen_name: 'Multiplayer_TV', profile_image_url_https: 'https://pbs.twimg.com/profile_images/123/abc_normal.jpg' } };
+  assert.deepEqual(profileFromSyn(j), { n: 'Multiplayer TV', a: 'https://pbs.twimg.com/profile_images/123/abc_bigger.jpg' });
+  assert.deepEqual(profileFromSyn({ user: { name: 'X', profile_image_url_https: 'https://evil.example/a.jpg' } }), { n: 'X', a: '' });
+  assert.equal(profileFromSyn({}), null);
+  assert.equal(profileFromSyn(null), null);
 });
