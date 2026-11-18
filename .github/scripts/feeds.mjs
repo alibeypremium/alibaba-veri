@@ -40,7 +40,13 @@ if (process.argv[1] && process.argv[1].endsWith('feeds.mjs')) {
   const outFile = process.argv[2] || 'feeds.json';
   const urls = JSON.parse(fs.readFileSync(new URL('../../config/feeds.json', import.meta.url), 'utf8'));
   const f = {};
-  await pool(urls, 6, async (u) => { const it = parseFeed(await get(u)); if (it.length) f[u] = it; });
+  await pool(urls, 6, async (u) => {
+    const it = parseFeed(await get(u));
+    // Bazı kaynaklar (ör. CNN Türk) yerel saati "GMT" diye yazar → tarihler gelecekte görünür; böyle bir besleme 3 saat geri alınır.
+    const newest = Math.max(0, ...it.map((x) => Date.parse(x.date) || 0));
+    if (newest > Date.now() + 30 * 60e3 && newest < Date.now() + 4 * 3600e3) for (const x of it) if (x.date) x.date = new Date(Date.parse(x.date) - 3 * 3600e3).toISOString();
+    if (it.length) f[u] = it;
+  });
   if (!Object.keys(f).length) { console.error('hiç besleme alınamadı'); process.exit(1); }
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), f }));
