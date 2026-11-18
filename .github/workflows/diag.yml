@@ -1,0 +1,26 @@
+name: diag
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          node -e "
+          (async()=>{
+            const UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36';
+            for (const q of ['Ananta','Stranger Than Heaven']){
+              try{
+                const r=await fetch('https://store.playstation.com/tr-tr/search/'+encodeURIComponent(q),{headers:{'user-agent':UA,'accept-language':'tr-TR'},signal:AbortSignal.timeout(20000)});
+                const t=await r.text();
+                const names=[...t.matchAll(/\"name\":\"([^\"]{2,80})\"/g)].map(m=>m[1]);
+                console.log('SEARCH',q,r.status,t.length,'eşleşen:',JSON.stringify(names.filter(n=>n.toLowerCase().includes(q.toLowerCase().split(' ')[0])).slice(0,8)),'ürünKimliği:',JSON.stringify([...t.matchAll(/\/product\/([A-Z0-9_-]{10,})/g)].map(m=>m[1]).slice(0,6)));
+              }catch(e){console.log('SEARCH ERR',q,e.message)}
+            }
+            for (const u of ['https://www.playstation.com/tr-tr/games/ananta/','https://www.playstation.com/tr-tr/games/stranger-than-heaven/']){
+              try{
+                const r=await fetch(u,{headers:{'user-agent':UA,'accept-language':'tr-TR'},signal:AbortSignal.timeout(20000)});
+                const t=await r.text();
+                console.log('PAGE',u,r.status,t.length,'store linki:',JSON.stringify([...t.matchAll(/store\.playstation\.com[^\"\\\\ <]{0,120}/g)].map(m=>m[0]).slice(0,4)),'önsipariş:',/ön sipariş|pre-?order/i.test(t),'çıkış:',JSON.stringify((t.match(/(\"releaseDate\"|Çıkış)[^<]{0,80}/)||[])[0]));
+              }catch(e){console.log('PAGE ERR',u,e.message)}
+            }
+          })()"
