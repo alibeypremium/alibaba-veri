@@ -4,21 +4,18 @@ jobs:
   d:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
       - run: |
           node -e "
-          import('./.github/scripts/tw.mjs').then(async m=>{
-            for (const h of m.INSTANCES){
-              try{
-                const r=await fetch('https://'+h+'/i/lists/'+m.LIST+'/rss',{headers:{'user-agent':'Mozilla/5.0 (compatible; AliBabaTerminal-tw)'},signal:AbortSignal.timeout(20000)});
-                const x=await r.text(); console.log('HOST',h,r.status,x.length);
-                let n=0;
-                for(const b of x.split('<item>').slice(1)){
-                  if(/video|gif/i.test(b.replace(/amplify_video_thumb|ext_tw_video_thumb/g,'')) || /<video|\.mp4|m3u8/i.test(b)){console.log('ITEM',b.slice(0,1800));if(++n>=3)break}
-                }
-                if(x.includes('<item>'))break;
-              }catch(e){console.log('ERR',h,e.message)}
+          (async()=>{
+            for (const id of ['2122970568550998400','2122965974408479230']){
+              const token=((Number(id)/1e15)*Math.PI).toString(36).replace(/(0+|\.)/g,'');
+              for (const host of ['cdn.syndication.twimg.com','syndication.twitter.com']){
+                try{
+                  const r=await fetch('https://'+host+'/tweet-result?id='+id+'&lang=tr&token='+token,{headers:{'user-agent':'Mozilla/5.0'},signal:AbortSignal.timeout(15000)});
+                  const t=await r.text();
+                  console.log('RES',host,id,r.status,r.headers.get('access-control-allow-origin'),t.length);
+                  try{const j=JSON.parse(t);console.log('VID',JSON.stringify((j.mediaDetails||[]).map(m=>({type:m.type,v:m.video_info&&m.video_info.variants,d:m.video_info&&m.video_info.duration_millis}))).slice(0,1500))}catch(e){console.log('BODY',t.slice(0,300))}
+                }catch(e){console.log('ERR',host,e.message)}
+              }
             }
-          })"
+          })()"
