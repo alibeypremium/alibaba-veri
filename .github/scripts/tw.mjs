@@ -26,10 +26,8 @@ const strip = (h) => unent(String(h).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]
 // Görsel: Nitter bazı örneklerde doğrudan pbs.twimg.com adresi verir, bazılarında kendi /pic/ vekil adresini. İkisi de X'in görsel adresine çevrilir;
 // yalnızca bilinen medya yolları kabul edilir (avatar, rastgele site yok).
 const MEDIA = /^(media|ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb|card_img)\/[\w./-]+$/;
-export function picOf(html) {
-  const m = String(html).match(/<img[^>]+src="([^"]+)"/i);
-  if (!m) return '';
-  const src = unent(m[1]);
+function mediaOf(src0) {
+  const src = unent(src0);
   let p;
   const d = src.match(/^https:\/\/pbs\.twimg\.com\/([^?#]+)/);
   if (d) p = d[1];
@@ -41,6 +39,36 @@ export function picOf(html) {
     p = p.split('?')[0];
   }
   return MEDIA.test(p) ? 'https://pbs.twimg.com/' + p : '';
+}
+// Açıklamadaki tüm görseller (en çok 4, yinelenenler atılır).
+export function picsOf(html) {
+  const out = [];
+  for (const m of String(html).matchAll(/<img[^>]+src="([^"]+)"/gi)) {
+    const u = mediaOf(m[1]);
+    if (u && !out.includes(u)) out.push(u);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+export const picOf = (html) => picsOf(html)[0] || '';
+// Alıntı tweet: Nitter açıklamasında <blockquote><b>Ad (@kullanıcı)</b> … <a href=".../kullanıcı/status/ID#m"> … </blockquote>.
+export function quoteOf(descHtml) {
+  const m = String(descHtml).match(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i);
+  if (!m) return { q: null, rest: String(descHtml) };
+  const rest = String(descHtml).replace(m[0], '');
+  const inner = m[1];
+  const link = (inner.match(/href="[^"]*?\/(\w{1,15})\/status\/(\d{6,})/) || []);
+  const head = strip((inner.match(/<b>([\s\S]*?)<\/b>/) || [])[1] || '');
+  const hm = head.match(/^(.*?)\s*\(@(\w{1,15})\)\s*$/);
+  const user = hm ? hm[2] : link[1] || (head.match(/@(\w{1,15})/) || [])[1] || '';
+  const body = inner.replace(/<b>[\s\S]*?<\/b>/i, '').replace(/<a\b[\s\S]*?<\/a>/gi, '').replace(/<img[^>]*>/gi, '');
+  const text = noTco(unent(body.replace(/<\/p>\s*<p>/gi, '\n\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')));
+  const imgs = picsOf(inner);
+  if (!user || (!text && !imgs.length)) return { q: null, rest };
+  const q = { u: '@' + user, n: (hm ? hm[1] : '').trim().slice(0, 60), t: text.slice(0, 600) };
+  if (link[2]) q.l = 'https://x.com/' + link[1] + '/status/' + link[2];
+  if (imgs[0]) q.img = imgs[0];
+  return { q, rest };
 }
 
 // Tweet metnindeki kısaltılmış bağlantılar (t.co, bazı Nitter örneklerinde "örnek/t.co/…") okunmayı bozar: silinir.
@@ -80,10 +108,12 @@ export function parse(xml) {
       const full = fullText(desc), sq = (x) => x.replace(/\s+/g, ' ');
       if (full && sq(full).startsWith(sq(text.replace(/(…|\.\.\.)$/, '')).slice(0, 30))) text = full;
     }
-    const img = picOf(desc);
-    if (!id || !/^\w{1,15}$/.test(user) || !(when > 0) || (!text && !img)) continue;   // yalnızca bağlantıdan oluşan ve görseli olmayan tweet atlanır
+    const { q, rest } = quoteOf(desc), imgs = picsOf(rest), img = imgs[0] || '';
+    if (!id || !/^\w{1,15}$/.test(user) || !(when > 0) || (!text && !img && !q)) continue;   // yalnızca bağlantıdan oluşan ve görseli olmayan tweet atlanır
     const it = { id, u: '@' + user, k: kind, t: text.slice(0, 1500), d: new Date(when).toISOString(), l: 'https://x.com/' + user + '/status/' + id };
     if (img) it.img = img;
+    if (imgs.length > 1) it.imgs = imgs;
+    if (q) it.q = q;
     out.push(it);
   }
   return out.sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, MAX);

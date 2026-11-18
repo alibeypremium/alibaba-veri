@@ -72,3 +72,22 @@ test('tw: satır sonları korunur; kesilmiş (…) başlık yerine açıklamadak
   assert.deepEqual([by['2'].k, by['2'].t], ['rt', 'Paylaşılan haber']);
   assert.equal(by['3'].t, 'Kısa tweet…', 'açıklama başlıkla örtüşmüyorsa başlık kalır');
 });
+
+test('parse: çoklu görsel (imgs) ve alıntı tweet (q)', () => {
+  const item = (id, title, desc) => `<item><title>${title}</title><dc:creator>@ali</dc:creator><description><![CDATA[${desc}]]></description><pubDate>Mon, 16 Nov 2026 11:00:00 GMT</pubDate><guid>${id}</guid><link>https://nitter.example/ali/status/${id}#m</link></item>`;
+  const xml = '<rss><channel><title>x</title>' +
+    item('2000000000000000001', 'Üç görsel', '<p>Üç görsel</p><img src="https://nitter.example/pic/orig/media%2FA1.jpg"><img src="https://nitter.example/pic/orig/media%2FA2.jpg"><img src="https://nitter.example/pic/orig/media%2FA1.jpg"><img src="https://evil.example/x.jpg">') +
+    item('2000000000000000002', 'Alıntıladım', '<p>Alıntıladım</p><blockquote><b>Haber Ajansı (@haberajansi)</b><p>İç tweet metni https://t.co/abc</p><br><img src="https://nitter.example/pic/orig/media%2FQ1.jpg"><a href="https://nitter.example/haberajansi/status/1999999999999999999#m">https://nitter.example/haberajansi/status/1999999999999999999#m</a></blockquote>') +
+    item('2000000000000000003', 'Tek', '<p>Tek</p><img src="https://nitter.example/pic/orig/media%2FS1.jpg">') +
+    '</channel></rss>';
+  const r = Object.fromEntries(parse(xml).map((x) => [x.id, x]));
+  assert.deepEqual(r['2000000000000000001'].imgs, ['https://pbs.twimg.com/media/A1.jpg', 'https://pbs.twimg.com/media/A2.jpg']);
+  assert.equal(r['2000000000000000001'].img, 'https://pbs.twimg.com/media/A1.jpg');
+  assert.equal(r['2000000000000000003'].imgs, undefined, 'tek görselde imgs yok');
+  const q = r['2000000000000000002'].q;
+  assert.equal(q.u, '@haberajansi'); assert.equal(q.n, 'Haber Ajansı');
+  assert.equal(q.t, 'İç tweet metni');
+  assert.equal(q.l, 'https://x.com/haberajansi/status/1999999999999999999');
+  assert.equal(q.img, 'https://pbs.twimg.com/media/Q1.jpg');
+  assert.equal(r['2000000000000000002'].img, undefined, 'alıntıdaki görsel ana tweet görseli sayılmaz');
+});
