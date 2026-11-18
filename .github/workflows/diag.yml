@@ -1,0 +1,24 @@
+name: diag
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: |
+          node -e "
+          import('./.github/scripts/tw.mjs').then(async m=>{
+            for (const h of m.INSTANCES){
+              try{
+                const r=await fetch('https://'+h+'/i/lists/'+m.LIST+'/rss',{headers:{'user-agent':'Mozilla/5.0 (compatible; AliBabaTerminal-tw)'},signal:AbortSignal.timeout(20000)});
+                const x=await r.text(); console.log('HOST',h,r.status,x.length);
+                let n=0;
+                for(const b of x.split('<item>').slice(1)){
+                  if(/video|gif/i.test(b.replace(/amplify_video_thumb|ext_tw_video_thumb/g,'')) || /<video|\.mp4|m3u8/i.test(b)){console.log('ITEM',b.slice(0,1800));if(++n>=3)break}
+                }
+                if(x.includes('<item>'))break;
+              }catch(e){console.log('ERR',h,e.message)}
+            }
+          })"
