@@ -1,0 +1,23 @@
+name: diag
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: |
+          node -e "
+          import('./.github/scripts/tw.mjs').then(async m=>{
+            for (const h of ['nitter.netbub.com','nitter.mie.foundation','nitter.kareem.one']){
+              for (const u of ['Multiplayer_TV','multiplayer_tv','bosunatiklama']){
+                try{
+                  const r=await fetch('https://'+h+'/'+u+'/rss',{headers:{'user-agent':'Mozilla/5.0 (compatible; AliBabaTerminal-tw)'},signal:AbortSignal.timeout(15000)});
+                  const x=await r.text(); const p=m.profileOf(x);
+                  console.log('PROF',h,u,r.status,x.length,JSON.stringify(p),JSON.stringify(x.slice(0,300).replace(/\s+/g,' ')));
+                }catch(e){console.log('PROF ERR',h,u,e.message)}
+                await new Promise(o=>setTimeout(o,600));
+              }
+            }
+          })"
