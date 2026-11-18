@@ -12,6 +12,9 @@ const CHANNELS = [
   { k: 'firsat', u: 'firsattayfa',             name: 'Fırsat Tayfa',      cat: 'alisveris' },
 ];
 
+// Telegram CDN'indeki mp4 (örn. https://cdn4.telesco.pe/file/<ad>.mp4?token=...); başka adres kabul edilmez.
+export const vidOf = (u) => /^https:\/\/[\w.-]*(?:telesco\.pe|cdn-telegram\.org)\/file\/[\w.-]+\.mp4(?:\?[\w=&.%-]*)?$/.test(String(u || '')) ? String(u) : '';
+
 export function parse(html, c) {
   const $ = cheerio.load(html);
   const out = [];
@@ -32,18 +35,23 @@ export function parse(html, c) {
         ext = u.href;
       });
     }
-    // Mesajın ilk görseli: fotoğraf, video kapağı ya da bağlantı önizlemesi (arka plan resmi olarak verilir).
-    let img = '';
-    m.find('.tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb, .link_preview_image, .link_preview_right_image').each((_, n) => {
-      if (img) return;
-      const mm = ($(n).attr('style') || '').match(/url\(\s*['"]?([^'")]+)/);
-      if (mm && /^https:\/\//.test(mm[1])) img = mm[1];
-    });
+    // Görseller: albümdeki tüm fotoğraflar (en çok 4), video kapağı; hiçbiri yoksa bağlantı önizlemesi. Arka plan resmi olarak verilir.
+    const bg = (n) => { const mm = ($(n).attr('style') || '').match(/url\(\s*['"]?([^'")]+)/); return mm && /^https:\/\//.test(mm[1]) ? mm[1] : ''; };
+    const imgs = [];
+    m.find('.tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb').each((_, n) => { const u = bg(n); if (u && !imgs.includes(u) && imgs.length < 4) imgs.push(u); });
+    if (!imgs.length) m.find('.link_preview_image, .link_preview_right_image').each((_, n) => { const u = bg(n); if (u && !imgs.length) imgs.push(u); });
+    const img = imgs[0] || '';
+    // Video: mesajdaki ilk oynatılabilir mp4 (yalnızca Telegram CDN'i). Önce bulanık olmayan, yoksa herhangi biri.
+    let vid = '';
+    const vs = m.find('video[src]').toArray().sort((a, b) => /blured/.test($(a).attr('class') || '') - /blured/.test($(b).attr('class') || ''));
+    for (const v of vs) { const u = vidOf($(v).attr('src')); if (u) { vid = u; break; } }
     out.push({
       title: (title || 'Medya mesajı').slice(0, 400),
       link: 'https://t.me/' + post,
       ext,
       img,
+      ...(imgs.length > 1 ? { imgs } : {}),
+      ...(vid ? { vid } : {}),
       cat: c.cat,
       date: m.find('.tgme_widget_message_date time').attr('datetime') || '',
       source: c.name,
