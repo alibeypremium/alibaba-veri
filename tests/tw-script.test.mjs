@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parse, picOf, unent, noTco, norm, fullText, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
+import { isVideoThumb, pickMp4, parse, picOf, unent, noTco, norm, fullText, profileOf, LIST, INSTANCES } from '../.github/scripts/tw.mjs';
 
 const xml = fs.readFileSync(new URL('./fixtures/tw-list.rss', import.meta.url), 'utf8');
 
@@ -90,4 +90,19 @@ test('parse: çoklu görsel (imgs) ve alıntı tweet (q)', () => {
   assert.equal(q.l, 'https://x.com/haberajansi/status/1999999999999999999');
   assert.equal(q.img, 'https://pbs.twimg.com/media/Q1.jpg');
   assert.equal(r['2000000000000000002'].img, undefined, 'alıntıdaki görsel ana tweet görseli sayılmaz');
+});
+
+test('video: küçük resim tanınır, mp4 seçimi (≤1,5 Mbps en yükseği; HLS ve yabancı adres atılır)', () => {
+  assert.ok(isVideoThumb('https://pbs.twimg.com/amplify_video_thumb/1/img/a.jpg'));
+  assert.ok(isVideoThumb('https://pbs.twimg.com/tweet_video_thumb/a.jpg'));
+  assert.ok(!isVideoThumb('https://pbs.twimg.com/media/a.jpg'));
+  const v = (bitrate, url, content_type = 'video/mp4') => ({ bitrate, url, content_type });
+  const j = { mediaDetails: [{ video_info: { variants: [
+    v(0, 'https://video.twimg.com/a/pl/x.m3u8', 'application/x-mpegURL'),
+    v(432000, 'https://video.twimg.com/a/320.mp4'), v(1280000, 'https://video.twimg.com/a/720.mp4'), v(8768000, 'https://video.twimg.com/a/1080.mp4'),
+    v(900000, 'https://evil.example/x.mp4')] } }] };
+  assert.equal(pickMp4(j), 'https://video.twimg.com/a/720.mp4');
+  assert.equal(pickMp4({ mediaDetails: [{ video_info: { variants: [v(8768000, 'https://video.twimg.com/a/1080.mp4'), v(5e6, 'https://video.twimg.com/a/540.mp4')] } }] }), 'https://video.twimg.com/a/540.mp4', 'hepsi büyükse en düşük');
+  assert.equal(pickMp4({ mediaDetails: [{ type: 'photo' }] }), '');
+  assert.equal(pickMp4(null), '');
 });

@@ -119,6 +119,23 @@ export function parse(xml) {
   return out.sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, MAX);
 }
 
+// Video: Nitter RSS yalnızca küçük resmi verir (amplify_video_thumb vb.). Oynatılabilir mp4 adresi X'in herkese açık tweet-result
+// uç noktasından alınır (Actions'tan çalışır; tarayıcıdan çağrılmaz). En yüksek bitrate ≤ 1,5 Mbps olan mp4 seçilir, yoksa en düşük.
+export const isVideoThumb = (u) => /^https:\/\/pbs\.twimg\.com\/(amplify_video_thumb|ext_tw_video_thumb|tweet_video_thumb)\//.test(u || '');
+export function pickMp4(j) {
+  const vs = ((j && j.mediaDetails) || []).flatMap((m) => (m.video_info && m.video_info.variants) || [])
+    .filter((v) => v.content_type === 'video/mp4' && /^https:\/\/video\.twimg\.com\/[\w./-]+\.mp4(\?[\w=&.-]*)?$/.test(v.url || ''));
+  if (!vs.length) return '';
+  const ok = vs.filter((v) => (v.bitrate || 0) <= 1.5e6).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+  return (ok[0] || vs.sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0))[0]).url;
+}
+async function videoOf(id) {
+  const token = ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '');
+  const r = await fetch('https://cdn.syndication.twimg.com/tweet-result?id=' + id + '&lang=tr&token=' + token, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return pickMp4(await r.json());
+}
+
 async function get(host) {
   const r = await fetch('https://' + host + '/i/lists/' + LIST + '/rss', { headers: { 'user-agent': UA, accept: 'application/rss+xml,text/xml;q=0.9,*/*;q=0.8' }, signal: AbortSignal.timeout(20000) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -148,8 +165,8 @@ if (process.argv[1] && process.argv[1].endsWith('tw.mjs')) {
   if (got.size) {
     const items = [...got.values()].sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, MAX);
     // Profiller (ad + profil resmi): önceki tw.json'dan taşınır; eksik ya da 7 günden eski olanlar, çalışan örnekten bir seferde en çok 8 tane yenilenir.
-    let prev = {};
-    try { const r = await fetch('https://raw.githubusercontent.com/' + (process.env.GITHUB_REPOSITORY || 'alibeypremium/alibaba-veri') + '/veri-tw/tw.json', { signal: AbortSignal.timeout(10000) }); if (r.ok) prev = (await r.json()).p || {}; } catch {}
+    let prev = {}; const prevVid = {};
+    try { const r = await fetch('https://raw.githubusercontent.com/' + (process.env.GITHUB_REPOSITORY || 'alibeypremium/alibaba-veri') + '/veri-tw/tw.json', { signal: AbortSignal.timeout(10000) }); if (r.ok) { const pj = await r.json(); prev = pj.p || {}; for (const x of pj.items || []) if (x.vid) prevVid[x.id] = x.vid; } } catch {}
     const handles = [...new Set(items.map((i) => i.u.slice(1)))], p = {};
     for (const h of handles) if (prev[h]) p[h] = prev[h];
     const need = handles.filter((h) => !p[h] || Date.now() - (p[h].t || 0) > PROF_TTL).slice(0, 8);
@@ -160,6 +177,16 @@ if (process.argv[1] && process.argv[1].endsWith('tw.mjs')) {
         if (pr) { p[h] = { ...pr, t: Date.now() }; console.log('tw profil', h, pr.n); }
       } catch (e) { console.log('tw profil hata', h, e.message); }
       await new Promise((ok) => setTimeout(ok, 500));
+    }
+    // Video adresleri: önceki çalışmadan taşınır, yeni video tweet'leri için bir seferde en çok 12 arama.
+    let looked = 0;
+    for (const it of items) {
+      if (!isVideoThumb(it.img)) continue;
+      if (prevVid[it.id]) { it.vid = prevVid[it.id]; continue; }
+      if (looked >= 12) continue;
+      looked++;
+      try { const v = await videoOf(it.id); if (v) { it.vid = v; console.log('tw video', it.id); } } catch (e) { console.log('tw video hata', it.id, e.message); }
+      await new Promise((ok) => setTimeout(ok, 300));
     }
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), url: 'https://x.com/i/lists/' + LIST, name: title, src: used.join(','), p, items }));
