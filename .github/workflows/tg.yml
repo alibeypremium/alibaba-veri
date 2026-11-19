@@ -26,7 +26,7 @@ jobs:
         run: |
           mkdir -p out
           : > out/wf.tmp
-          for wf in tg ps kurul art yt; do
+          for wf in tg ps kurul art yt hw; do
             r=$(gh api "repos/${{ github.repository }}/actions/workflows/$wf.yml/runs?per_page=4" --jq '[.workflow_runs[]|{s:.status,c:.conclusion,t:.updated_at}]' 2>/dev/null || echo '[]')
             printf '%s\t%s\n' "$wf" "$r" >> out/wf.tmp
           done
