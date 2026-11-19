@@ -19,7 +19,8 @@ const HTML = `<html><body><header><h1 class="logo">ORANGE TRACK</h1></header><ar
 <h1>HWC / RLC</h1>
 <table><tr><th>Casting</th><th>Color</th><th>Sale Date</th><th>Image</th></tr>
 <tr><td><strong>’95 BMW M3<br></strong><em>2027 RLC Membership</em></td><td><em>Aqua*</em></td><td></td><td></td></tr></table>
-<h1>Exclusives</h1><table><tr><td>BONE SHAKER</td><td>x</td></tr><tr><td><a href="https://creations.mattel.com/products/x">Mercedes-AMG GT R*</a></td><td>y</td></tr></table>
+<h2>Extensions</h2><h1>Exclusives</h1><table><tr><td>BONE SHAKER</td><td>x</td></tr><tr><td><a href="https://creations.mattel.com/products/x">Mercedes-AMG GT R*</a></td><td>y</td></tr></table>
+<h2>Silver Series</h2><h1>Retro</h1><table><tr><td><strong>’73 BMW 3.0 CSL Race Car</strong></td><td>x</td></tr></table>
 </article></body></html>`;
 
 test('hw: yalnızca Mercedes-Benz ve BMW; ad, bağlantı, görsel (sorgusuz), kategori, seri', () => {
@@ -34,4 +35,6 @@ test('hw: yalnızca Mercedes-Benz ve BMW; ad, bağlantı, görsel (sorgusuz), ka
   assert.equal(r[5].c, 'Ultra Premium', '"A / B" kategorisinde son bölüm');
   assert.equal(r[5].i, '', 'görseli olmayan satır da listelenir');
   assert.ok(!r.some((x) => /Ford|Aston|BONE/.test(x.n)));
+  assert.ok(!r.some((x) => /CSL/.test(x.n)), 'Silver Series alınmaz');
+  assert.deepEqual([...new Set(r.map((x) => x.c))].sort(), ['Extensions', 'Premium', 'Ultra Premium']);
 });

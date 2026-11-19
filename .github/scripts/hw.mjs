@@ -8,6 +8,7 @@ import path from 'node:path';
 
 export const YEARS = ['2027', '2026'];
 export const BRAND = /\b(mercedes|bmw)\b/i;
+export const CATS = /^(premium|ultra premium|extensions)$/i;   // yalnızca bu kategoriler (Silver Series, yıldönümü vb. alınmaz)
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const src = (y) => 'https://orangetrackdiecast.com/' + y + '-hot-wheels-master-list-of-all-lines/';
 
@@ -29,7 +30,7 @@ export function parse(html) {
   let cat = '', line = '', sub = '';
   const add = (n, u, i, c, s) => {
     n = sp(n).replace(/\*+$/, '').trim();
-    if (!n || !BRAND.test(n)) return;
+    if (!n || !BRAND.test(n) || !CATS.test(c)) return;
     const k = n + '|' + s;
     if (seen.has(k)) return;
     seen.add(k);
