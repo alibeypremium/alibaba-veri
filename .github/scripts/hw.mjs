@@ -33,7 +33,7 @@ export function parse(html) {
     const k = n + '|' + s;
     if (seen.has(k)) return;
     seen.add(k);
-    out.push({ n, u, i, c, s });
+    out.push({ n, u: /^https:\/\/collabs\.shop\//.test(u) ? '' : u, i, c, s });   // collabs.shop kısa bağlantıları kalkmış/404 veriyor (Chrome'da doğrulandı)
   };
   $('article').first().find('h1,h2,h3,table,.wp-block-media-text').each((_, el) => {
     const t = el.tagName;
@@ -63,26 +63,6 @@ export function parse(html) {
   return out;
 }
 
-// collabs.shop kısa bağlantıları ürün kalkınca ana sayfaya düşer; yönlendirmesi ana sayfada biten bağlantılar atılır (u = '').
-export const isHome = (finalUrl) => { try { const p = new URL(finalUrl); return p.pathname.replace(/\/+$/, '') === ''; } catch { return false; } };
-async function vet(list, prev) {
-  const old = new Map((prev || []).map((x) => [x.n + '|' + x.s, x.u]));
-  let n = 0;
-  for (const x of list) {
-    if (!/^https:\/\/collabs\.shop\//.test(x.u)) continue;
-    try {
-      const r = await fetch(x.u, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15000), redirect: 'follow' });
-      const home = isHome(r.url);
-      console.log('bağlantı', x.u, '→', r.url, r.status, home ? 'ANA SAYFA, atıldı' : 'tamam');
-      if (home || !r.ok) x.u = ''; else n++;
-    } catch (e) {
-      console.log('bağlantı', x.u, 'denenemedi', e.message);
-      if (old.has(x.n + '|' + x.s) && old.get(x.n + '|' + x.s) === '') x.u = '';   // daha önce atılmıştı, belirsizken geri getirme
-    }
-  }
-  return n;
-}
-
 async function get(u) {
   const r = await fetch(u, { headers: { 'user-agent': UA, 'accept-language': 'en' }, signal: AbortSignal.timeout(40000), redirect: 'follow' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -98,7 +78,6 @@ if (process.argv[1] && process.argv[1].endsWith('hw.mjs')) {
     try {
       const list = parse(await get(src(yr)));
       if (!list.length) throw new Error('hiç araç bulunamadı');
-      await vet(list, prev[yr]);
       y[yr] = list;
       console.log(yr + ': ' + list.length + ' araç');
     } catch (e) {
