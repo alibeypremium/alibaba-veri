@@ -20,6 +20,7 @@ jobs:
       - name: önceki veriyi al (başarısız olan dosya eskisiyle kalsın)
         run: |
           git clone -q --depth 1 -b veri-hw "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" out 2>/dev/null && rm -rf out/.git || mkdir -p out
+      - run: npm install --no-save --no-package-lock cheerio@1.0.0
       - run: node .github/scripts/hw.mjs out
       - name: veri-hw dalına yaz (site yeniden build olmaz)
         run: |
