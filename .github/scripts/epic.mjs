@@ -29,11 +29,11 @@ export function toRow(e) {
   };
 }
 
-async function page(start, count) {
+async function page(start, count, onSale = true, sort = ['currentPrice', 'DESC']) {
   const r = await fetch('https://store.epicgames.com/graphql', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'user-agent': UA, accept: 'application/json', origin: 'https://store.epicgames.com', referer: 'https://store.epicgames.com/tr/browse' },
-    body: JSON.stringify({ query: Q, variables: { allowCountries: 'TR', category: 'games/edition/base|bundles/games|editors', count, country: 'TR', locale: 'tr', sortBy: 'currentPrice', sortDir: 'DESC', start, onSale: true, freeGame: false } }),
+    body: JSON.stringify({ query: Q, variables: { allowCountries: 'TR', category: 'games/edition/base|bundles/games|editors', count, country: 'TR', locale: 'tr', sortBy: sort[0], sortDir: sort[1], start, onSale: onSale ? true : null, freeGame: null } }),
     signal: AbortSignal.timeout(30000),
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -41,6 +41,29 @@ async function page(start, count) {
   const s = j.data && j.data.Catalog && j.data.Catalog.searchStore;
   if (!s) throw new Error('beklenmeyen yanıt: ' + JSON.stringify(j).slice(0, 200));
   return s;
+}
+
+const CDN = 'https://cdn1.epicgames.com/';
+/** Arama için kısa satır: [mağaza yolu, ad, yatay görsel (CDN öneki atılmış), eski ₺, yeni ₺] */
+export function toAll(e) {
+  const t = e && e.price && e.price.totalPrice, slug = slugOf(e);
+  if (!t || !slug || !e.title) return null;
+  const im = img(e, 'OfferImageWide', 'DieselStoreFrontWide', 'Thumbnail');
+  return [slug, e.title, im.startsWith(CDN) ? im.slice(CDN.length) : im, t.originalPrice / 100, t.discountPrice / 100];
+}
+
+async function catalog(outFile) {
+  const first = await page(0, 100, false, ['title', 'ASC']);
+  const total = (first.paging && first.paging.total) || 0, rows = new Map();
+  const take = (s) => { for (const e of s.elements) { const r = toAll(e); if (r && !rows.has(r[0])) rows.set(r[0], r); } };
+  take(first);
+  const starts = []; for (let st = 100; st < Math.min(total, 12000); st += 100) starts.push(st);
+  const got = new Map(); let i = 0;
+  await Promise.all([0, 1, 2].map(async () => { while (i < starts.length) { const st = starts[i++]; try { got.set(st, await page(st, 100, false, ['title', 'ASC'])); } catch (e) { console.log('::warning::katalog sayfa ' + st + ': ' + e.message); } } }));
+  starts.forEach((st) => got.has(st) && take(got.get(st)));
+  console.log('Epic katalog:', rows.size, '(toplam', total + ')');
+  if (rows.size < 1000) { console.log('::warning::Epic kataloğu eksik; epic-all.json güncellenmedi'); return; }
+  fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), g: [...rows.values()] }));
 }
 
 async function main() {
@@ -56,6 +79,7 @@ async function main() {
   if (d.length < 20) throw new Error('çok az sonuç (' + d.length + '), epic.json güncellenmedi');
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), d }));
+  try { await catalog(path.join(path.dirname(outFile), 'epic-all.json')); } catch (e) { console.log('::warning::katalog: ' + e.message); }
 }
 
 if (process.argv[1] && process.argv[1].endsWith('epic.mjs')) main().catch((e) => { console.log('::warning::' + e.message); process.exit(0); });
