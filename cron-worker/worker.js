@@ -9,6 +9,7 @@ export function due(d) {
   if (m % 10 < 5) out.push('yt.yml');              // ~15 dk
   if (h % 6 === 0 && m < 5) out.push('ps.yml');    // 6 saatte bir
   if (h % 12 === 1 && m < 5) out.push('hw.yml');   // 12 saatte bir (Hot Wheels listesi)
+  if (h % 6 === 2 && m < 5) out.push('epic.yml');   // 6 saatte bir (Epic indirimleri)
   if (h === 3 && m >= 40 && m < 45) out.push('kurul.yml');   // günde bir (03:40 UTC)
   return out;
 }

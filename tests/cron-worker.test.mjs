@@ -12,5 +12,8 @@ test('cron-worker: her 5 dk tg; art ve yt 10 dk; ps 6, hw 12 saatte; kurul günd
   assert.ok(due(at(13, 0)).includes('hw.yml'));
   assert.ok(!due(at(7, 0)).includes('hw.yml'), 'hw 6. saatte çalışmaz');
   assert.deepEqual(due(at(7, 0)), ['tg.yml', 'art.yml', 'yt.yml']);
+  assert.deepEqual(due(at(2, 0)), ['tg.yml', 'art.yml', 'yt.yml', 'epic.yml']);
+  assert.ok(due(at(8, 0)).includes('epic.yml') && due(at(20, 0)).includes('epic.yml'));
+  assert.ok(!due(at(5, 0)).includes('epic.yml'));
   assert.deepEqual(due(at(3, 40)), ['tg.yml', 'art.yml', 'yt.yml', 'kurul.yml']);
 });
