@@ -43,6 +43,7 @@ async function page(start, count, onSale = true, sort = ['currentPrice', 'DESC']
   return s;
 }
 
+const PAGE = 40;   // Epic sayfa başına en fazla 40 öğe döndürür (count daha büyük olsa da); adım bu olmalı
 const CDN = 'https://cdn1.epicgames.com/';
 /** Arama için kısa satır: [mağaza yolu, ad, yatay görsel (CDN öneki atılmış), eski ₺, yeni ₺] */
 export function toAll(e) {
@@ -53,27 +54,27 @@ export function toAll(e) {
 }
 
 async function catalog(outFile) {
-  const first = await page(0, 100, false, ['title', 'ASC']);
+  const first = await page(0, PAGE, false, ['title', 'ASC']);
   const total = (first.paging && first.paging.total) || 0, rows = new Map();
   const take = (s) => { for (const e of s.elements) { const r = toAll(e); if (r && !rows.has(r[0])) rows.set(r[0], r); } };
   take(first);
-  const starts = []; for (let st = 100; st < Math.min(total, 12000); st += 100) starts.push(st);
+  const starts = []; for (let st = PAGE; st < Math.min(total, 20000); st += PAGE) starts.push(st);
   const got = new Map(); let i = 0;
-  await Promise.all([0, 1, 2].map(async () => { while (i < starts.length) { const st = starts[i++]; try { got.set(st, await page(st, 100, false, ['title', 'ASC'])); } catch (e) { console.log('::warning::katalog sayfa ' + st + ': ' + e.message); } } }));
+  await Promise.all([0, 1, 2].map(async () => { while (i < starts.length) { const st = starts[i++]; try { got.set(st, await page(st, PAGE, false, ['title', 'ASC'])); } catch (e) { console.log('::warning::katalog sayfa ' + st + ': ' + e.message); } } }));
   starts.forEach((st) => got.has(st) && take(got.get(st)));
   console.log('Epic katalog:', rows.size, '(toplam', total + ')');
-  if (rows.size < 1000) { console.log('::warning::Epic kataloğu eksik; epic-all.json güncellenmedi'); return; }
+  if (rows.size < 2000) { console.log('::warning::Epic kataloğu eksik; epic-all.json güncellenmedi'); return; }
   fs.writeFileSync(outFile, JSON.stringify({ t: Date.now(), g: [...rows.values()] }));
 }
 
 async function main() {
   const outFile = path.join(process.argv[2] || 'out', 'epic.json');
   const rows = new Map();
-  const first = await page(0, 100);
+  const first = await page(0, PAGE);
   const total = (first.paging && first.paging.total) || first.elements.length;
   const take = (s) => { for (const e of s.elements) { const r = toRow(e); if (r && !rows.has(r.u)) rows.set(r.u, r); } };
   take(first);
-  for (let st = 100; st < Math.min(total, 1000); st += 100) take(await page(st, 100));
+  for (let st = PAGE; st < Math.min(total, 2000); st += PAGE) take(await page(st, PAGE));
   const d = [...rows.values()].sort((a, b) => b.x - a.x || b.p - a.p);
   console.log('Epic indirim:', d.length, '(toplam', total + ')');
   if (d.length < 20) throw new Error('çok az sonuç (' + d.length + '), epic.json güncellenmedi');
