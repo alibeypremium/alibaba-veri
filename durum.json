@@ -1,0 +1,159 @@
+{
+  "t": 1795888247000,
+  "wf": {
+    "tg": [
+      {
+        "c": null,
+        "s": "in_progress",
+        "t": "2026-11-28T17:50:38Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:45:55Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:40:54Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:35:52Z"
+      }
+    ],
+    "ps": [
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T12:01:51Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T07:59:16Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T06:01:55Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T00:01:57Z"
+      }
+    ],
+    "kurul": [
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T12:21:46Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T03:40:51Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-27T13:07:12Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-27T03:40:59Z"
+      }
+    ],
+    "art": [
+      {
+        "c": null,
+        "s": "in_progress",
+        "t": "2026-11-28T17:50:39Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:41:06Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:31:06Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:20:59Z"
+      }
+    ],
+    "yt": [
+      {
+        "c": null,
+        "s": "in_progress",
+        "t": "2026-11-28T17:50:39Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:41:00Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:31:03Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T17:20:56Z"
+      }
+    ],
+    "hw": [
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T13:00:51Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T08:24:11Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T01:00:53Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-27T21:37:20Z"
+      }
+    ],
+    "epic": [
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T14:01:42Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T08:10:58Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T08:01:45Z"
+      },
+      {
+        "c": "success",
+        "s": "completed",
+        "t": "2026-11-28T02:01:43Z"
+      }
+    ]
+  }
+}
